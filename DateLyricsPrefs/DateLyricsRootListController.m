@@ -381,6 +381,28 @@ static void DateLyricsWipeLyricsCaches(void);
     [self amlRefreshMainPreview];
 }
 
+// Restore only the Awesome Mix v2 options; other tweak preferences stay intact.
+- (void)resetAwesomeMixSettings {
+    UIAlertController *confirmation = [UIAlertController alertControllerWithTitle:@"Reset Awesome Mix?"
+        message:@"Restore lyrics and song-info layout, fonts and colours to their defaults? Other DateLyrics options will be kept."
+        preferredStyle:UIAlertControllerStyleAlert];
+    [confirmation addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    __weak typeof(self) weakSelf = self;
+    [confirmation addAction:[UIAlertAction actionWithTitle:@"Reset" style:UIAlertActionStyleDestructive
+        handler:^(__unused UIAlertAction *action) {
+            CFStringRef suite = (__bridge CFStringRef)kDateLyricsPrefsSuite;
+            for (NSString *key in DateLyricsPreferenceDefaults()) {
+                if ([key hasPrefix:@"AM"])
+                    CFPreferencesSetAppValue((__bridge CFStringRef)key, NULL, suite);
+            }
+            CFPreferencesAppSynchronize(suite);
+            CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                CFSTR("com.shalamand3r.datelyrics/ReloadPrefs"), NULL, NULL, YES);
+            [weakSelf reloadSettings];
+        }]];
+    [self presentViewController:confirmation animated:YES completion:nil];
+}
+
 - (id)readPreferenceValue:(PSSpecifier *)specifier {
     NSString *key = [specifier propertyForKey:@"key"];
     if ([key isEqualToString:@"AODEnabled"] || [key isEqualToString:@"AODRefreshRetry"])

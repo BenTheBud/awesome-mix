@@ -32,118 +32,692 @@
 			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSGroupCell</string>
-			<key>label</key><string>Awesome Mix Lyric Screen</string>
-			<key>footerText</key><string>Experimental standalone overlay. Positions are fractions of your screen. Use Designer to hide the original iOS date. Respring after changes if needed.</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Awesome Mix • Lyrics</string>
+			<key>footerText</key>
+			<string>Independent lyrics display. Change sliders, then lock/wake the phone to check placement.</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSwitchCell</string>
-			<key>key</key><string>AMOverlayEnabled</string>
-			<key>label</key><string>Enable Separate Lyric Screen</string>
-			<key>default</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>key</key>
+			<string>AMOverlayEnabled</string>
+			<key>label</key>
+			<string>Show lyrics overlay</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSliderCell</string>
-			<key>label</key><string>Left position</string>
-			<key>key</key><string>AMOverlayX</string>
-			<key>min</key><real>0</real>
-			<key>max</key><real>0.95</real>
-			<key>default</key><real>0.145</real>
-			<key>showValue</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>key</key>
+			<string>AMOverlayPreview</string>
+			<key>label</key>
+			<string>Show positioning preview</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSliderCell</string>
-			<key>label</key><string>Top position</string>
-			<key>key</key><string>AMOverlayY</string>
-			<key>min</key><real>0</real>
-			<key>max</key><real>0.95</real>
-			<key>default</key><real>0.638</real>
-			<key>showValue</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Lyrics • Position and dimensions</string>
+			<key>footerText</key>
+			<string>Positions are fractions of the screen: 0.50 means halfway across or down.</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSliderCell</string>
-			<key>label</key><string>Width</string>
-			<key>key</key><string>AMOverlayW</string>
-			<key>min</key><real>0.05</real>
-			<key>max</key><real>1.0</real>
-			<key>default</key><real>0.71</real>
-			<key>showValue</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>LYRICS: LEFT / RIGHT</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSliderCell</string>
-			<key>label</key><string>Height</string>
-			<key>key</key><string>AMOverlayH</string>
-			<key>min</key><real>0.02</real>
-			<key>max</key><real>0.25</real>
-			<key>default</key><real>0.069</real>
-			<key>showValue</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMOverlayX</string>
+			<key>label</key>
+			<string>Left / right</string>
+			<key>default</key>
+			<real>0.145</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>0.95</real>
+			<key>showValue</key>
+			<true/>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSliderCell</string>
-			<key>label</key><string>Text size</string>
-			<key>key</key><string>AMOverlayFontSize</string>
-			<key>min</key><real>8</real>
-			<key>max</key><real>42</real>
-			<key>default</key><real>17</real>
-			<key>showValue</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>LYRICS: UP / DOWN</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSliderCell</string>
-			<key>label</key><string>Glow radius</string>
-			<key>key</key><string>AMOverlayGlow</string>
-			<key>min</key><real>0</real>
-			<key>max</key><real>25</real>
-			<key>default</key><real>8</real>
-			<key>showValue</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMOverlayY</string>
+			<key>label</key>
+			<string>Up / down</string>
+			<key>default</key>
+			<real>0.638</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>0.95</real>
+			<key>showValue</key>
+			<true/>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSSliderCell</string>
-			<key>label</key><string>Glow opacity</string>
-			<key>key</key><string>AMOverlayGlowOpacity</string>
-			<key>min</key><real>0</real>
-			<key>max</key><real>1.0</real>
-			<key>default</key><real>0.85</real>
-			<key>showValue</key><true/>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>LYRICS: WIDTH</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>Unlit text HEX</string>
-			<key>key</key><string>AMOverlayBaseHex</string>
-			<key>default</key><string>#FF9C28</string>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMOverlayW</string>
+			<key>label</key>
+			<string>Width</string>
+			<key>default</key>
+			<real>0.71</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.05</real>
+			<key>max</key>
+			<real>1.0</real>
+			<key>showValue</key>
+			<true/>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>Lit text HEX</string>
-			<key>key</key><string>AMOverlayHighlightHex</string>
-			<key>default</key><string>#FFC075</string>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>LYRICS: HEIGHT</string>
 		</dict>
 		<dict>
-			<key>cell</key><string>PSEditTextCell</string>
-			<key>label</key><string>Glow HEX</string>
-			<key>key</key><string>AMOverlayGlowHex</string>
-			<key>default</key><string>#FF6A00</string>
-			<key>defaults</key><string>com.shalamand3r.datelyrics</string>
-			<key>PostNotification</key><string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMOverlayH</string>
+			<key>label</key>
+			<string>Height</string>
+			<key>default</key>
+			<real>0.069</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.02</real>
+			<key>max</key>
+			<real>0.25</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Lyrics • Typography and glow</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>AMOverlayFontName</string>
+			<key>label</key>
+			<string>Lyrics font</string>
+			<key>default</key>
+			<string>Menlo-Bold</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>validTitles</key>
+			<array>
+				<string>Menlo Bold</string>
+				<string>System Bold</string>
+				<string>Avenir Next</string>
+				<string>Helvetica Neue</string>
+				<string>Courier New</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>Menlo-Bold</string>
+				<string>System-Bold</string>
+				<string>AvenirNext-DemiBold</string>
+				<string>HelveticaNeue-Bold</string>
+				<string>CourierNewPS-BoldMT</string>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>AMOverlayAlignment</string>
+			<key>label</key>
+			<string>Lyrics alignment</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>validTitles</key>
+			<array>
+				<string>Left</string>
+				<string>Centre</string>
+				<string>Right</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>LYRICS: FONT SIZE</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMOverlayFontSize</string>
+			<key>label</key>
+			<string>Font size</string>
+			<key>default</key>
+			<real>17.0</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>8.0</real>
+			<key>max</key>
+			<real>42.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>LYRICS: GLOW RADIUS</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMOverlayGlow</string>
+			<key>label</key>
+			<string>Glow radius</string>
+			<key>default</key>
+			<real>8.0</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>25.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>LYRICS: GLOW OPACITY</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMOverlayGlowOpacity</string>
+			<key>label</key>
+			<string>Glow opacity</string>
+			<key>default</key>
+			<real>0.85</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>1.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>key</key>
+			<string>AMOverlayBaseHex</string>
+			<key>label</key>
+			<string>Inactive words HEX</string>
+			<key>default</key>
+			<string>#FF9C28</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>key</key>
+			<string>AMOverlayHighlightHex</string>
+			<key>label</key>
+			<string>Active words HEX</string>
+			<key>default</key>
+			<string>#FFC075</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>key</key>
+			<string>AMOverlayGlowHex</string>
+			<key>label</key>
+			<string>Lyrics glow HEX</string>
+			<key>default</key>
+			<string>#FF6A00</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Awesome Mix • Song and artist</string>
+			<key>footerText</key>
+			<string>Title and artist are a SECOND movable overlay. Visible for Spotify and other apps providing Now Playing metadata.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>key</key>
+			<string>AMTrackEnabled</string>
+			<key>label</key>
+			<string>Show song information</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>key</key>
+			<string>AMTrackShowTitle</string>
+			<key>label</key>
+			<string>Show song title</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>key</key>
+			<string>AMTrackShowArtist</string>
+			<key>label</key>
+			<string>Show artist</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Song info • Position and dimensions</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SONG INFO: LEFT / RIGHT</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMTrackX</string>
+			<key>label</key>
+			<string>Left / right</string>
+			<key>default</key>
+			<real>0.145</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>0.95</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SONG INFO: UP / DOWN</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMTrackY</string>
+			<key>label</key>
+			<string>Up / down</string>
+			<key>default</key>
+			<real>0.58</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>0.95</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SONG INFO: WIDTH</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMTrackW</string>
+			<key>label</key>
+			<string>Width</string>
+			<key>default</key>
+			<real>0.71</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.05</real>
+			<key>max</key>
+			<real>1.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SONG INFO: HEIGHT</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMTrackH</string>
+			<key>label</key>
+			<string>Height</string>
+			<key>default</key>
+			<real>0.052</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.02</real>
+			<key>max</key>
+			<real>0.25</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Song info • Typography and glow</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>AMTrackFontName</string>
+			<key>label</key>
+			<string>Song information font</string>
+			<key>default</key>
+			<string>Menlo-Bold</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>validTitles</key>
+			<array>
+				<string>Menlo Bold</string>
+				<string>System Bold</string>
+				<string>Avenir Next</string>
+				<string>Helvetica Neue</string>
+				<string>Courier New</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>Menlo-Bold</string>
+				<string>System-Bold</string>
+				<string>AvenirNext-DemiBold</string>
+				<string>HelveticaNeue-Bold</string>
+				<string>CourierNewPS-BoldMT</string>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>key</key>
+			<string>AMTrackAlignment</string>
+			<key>label</key>
+			<string>Song information alignment</string>
+			<key>default</key>
+			<integer>1</integer>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>validTitles</key>
+			<array>
+				<string>Left</string>
+				<string>Centre</string>
+				<string>Right</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<integer>0</integer>
+				<integer>1</integer>
+				<integer>2</integer>
+			</array>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SONG INFO: FONT SIZE</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMTrackFontSize</string>
+			<key>label</key>
+			<string>Font size</string>
+			<key>default</key>
+			<real>12.0</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>8.0</real>
+			<key>max</key>
+			<real>42.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SONG INFO: GLOW RADIUS</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMTrackGlow</string>
+			<key>label</key>
+			<string>Glow radius</string>
+			<key>default</key>
+			<real>5.0</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>25.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>SONG INFO: GLOW OPACITY</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSliderCell</string>
+			<key>key</key>
+			<string>AMTrackGlowOpacity</string>
+			<key>label</key>
+			<string>Glow opacity</string>
+			<key>default</key>
+			<real>0.85</real>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+			<key>min</key>
+			<real>0.0</real>
+			<key>max</key>
+			<real>1.0</real>
+			<key>showValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>key</key>
+			<string>AMTrackTitleHex</string>
+			<key>label</key>
+			<string>Song title HEX</string>
+			<key>default</key>
+			<string>#FFC075</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>key</key>
+			<string>AMTrackArtistHex</string>
+			<key>label</key>
+			<string>Artist HEX</string>
+			<key>default</key>
+			<string>#FF9C28</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>key</key>
+			<string>AMTrackGlowHex</string>
+			<key>label</key>
+			<string>Song info glow HEX</string>
+			<key>default</key>
+			<string>#FF6A00</string>
+			<key>defaults</key>
+			<string>com.shalamand3r.datelyrics</string>
+			<key>PostNotification</key>
+			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Awesome Mix • Reset</string>
+			<key>footerText</key>
+			<string>Resets ONLY the Awesome Mix layout, fonts, preview and colours. Other DateLyrics settings and lyrics cache stay untouched.</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Reset Awesome Mix defaults</string>
+			<key>action</key>
+			<string>resetAwesomeMixSettings</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -175,7 +749,6 @@
 			<key>footerText</key>
 			<string>Decapitalize all letters in lyrics.</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -190,7 +763,6 @@
 			<key>PostNotification</key>
 			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSLinkListCell</string>
@@ -211,7 +783,6 @@
 			<key>requires</key>
 			<string>UseCustomFont</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -231,7 +802,6 @@
 			<key>PostNotification</key>
 			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -240,7 +810,6 @@
 			<key>footerText</key>
 			<string>Only affects songs with syllable/word timing data.</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -262,7 +831,6 @@
 			<key>PostNotification</key>
 			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -279,7 +847,6 @@
 			<key>requires</key>
 			<string>WordHighlighting</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -288,7 +855,6 @@
 			<key>footerText</key>
 			<string>Choose the animation for lyric line changes.</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -303,7 +869,6 @@
 			<key>PostNotification</key>
 			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSegmentCell</string>
@@ -336,7 +901,6 @@
 				<integer>4</integer>
 			</array>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSliderCell</string>
@@ -359,7 +923,6 @@
 			<key>requires</key>
 			<string>TransitionsEnabled</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -368,7 +931,6 @@
 			<key>footerText</key>
 			<string>Marquee scrolls long lines in sync with the lyric duration. Split Long Lines takes priority for syllable lyrics.</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -385,7 +947,6 @@
 			<key>id</key>
 			<string>SplitLongLines</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -407,7 +968,6 @@
 			<key>id</key>
 			<string>MarqueeEnabled</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSwitchCell</string>
@@ -424,9 +984,6 @@
 			<key>id</key>
 			<string>ShowAdlibs</string>
 		</dict>
-
-
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -435,7 +992,6 @@
 			<key>footerText</key>
 			<string>How long to keep the current lyric visible after music is paused.</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSSliderCell</string>
@@ -462,7 +1018,6 @@
 			<key>PostNotification</key>
 			<string>com.shalamand3r.datelyrics/ReloadPrefs</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -503,8 +1058,6 @@
 				<string>line.3.horizontal</string>
 			</dict>
 		</dict>
-
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
@@ -513,7 +1066,6 @@
 			<key>footerText</key>
 			<string>Experimental music-app support and Always-On Display options.</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSLinkCell</string>
@@ -529,14 +1081,12 @@
 				<string>flask.fill</string>
 			</dict>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
 			<string>Source Code</string>
 		</dict>
-
 		<dict>
 			<key>cell</key>
 			<string>PSButtonCell</string>

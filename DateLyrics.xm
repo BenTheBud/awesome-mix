@@ -2004,16 +2004,19 @@ static NSRange DateLyricsRangeFromPayload(NSDictionary *payload, NSString *prefi
 
 
 
-// ---- Awesome Mix: independent Lock Screen lyrics display (experimental) ----
-// The stock date view may be hidden by Designer. This label intentionally lives
-// under CSCoverSheetViewController instead of CSProminentSubtitleDateView.
+// ---- Awesome Mix: configurable standalone Lock Screen overlays (v2) ----
+// Designer may hide the native date; these labels are attached to the cover sheet.
 static __weak UIView *gAMOverlayHost = nil;
 static UILabel *gAMOverlayLyrics = nil;
+static UILabel *gAMOverlayTrack = nil;
+static NSString *gAMNowPlayingTitle = nil;
+static NSString *gAMNowPlayingArtist = nil;
 
 static CGFloat AMSetting(NSString *key, CGFloat fallback, CGFloat minValue, CGFloat maxValue) {
     id value = (__bridge_transfer id)CFPreferencesCopyAppValue((__bridge CFStringRef)key,
-                                 CFSTR("com.shalamand3r.datelyrics"));
+                                  CFSTR("com.shalamand3r.datelyrics"));
     CGFloat n = [value respondsToSelector:@selector(doubleValue)] ? [value doubleValue] : fallback;
+    if (!isfinite(n)) n = fallback;
     return fmin(maxValue, fmax(minValue, n));
 }
 
@@ -2022,95 +2025,146 @@ static UIColor *AMColor(NSString *key, NSString *fallback) {
     if (![raw isKindOfClass:NSString.class] || raw.length == 0) raw = fallback;
     NSString *hex = [[raw stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] uppercaseString];
     if ([hex hasPrefix:@"#"]) hex = [hex substringFromIndex:1];
-    if (hex.length != 6) hex = [fallback substringFromIndex:1];
+    NSCharacterSet *invalid = [[NSCharacterSet characterSetWithCharactersInString:@"0123456789ABCDEF"] invertedSet];
+    if (hex.length != 6 || [hex rangeOfCharacterFromSet:invalid].location != NSNotFound)
+        hex = [fallback substringFromIndex:1];
     unsigned int rgb = 0;
-    if (![[NSScanner scannerWithString:hex] scanHexInt:&rgb]) {
-        [[NSScanner scannerWithString:[fallback substringFromIndex:1]] scanHexInt:&rgb];
-    }
+    [[NSScanner scannerWithString:hex] scanHexInt:&rgb];
     return [UIColor colorWithRed:((rgb >> 16) & 0xff) / 255.0
                            green:((rgb >> 8) & 0xff) / 255.0
                             blue:(rgb & 0xff) / 255.0 alpha:1.0];
 }
 
-static BOOL AMOverlayEnabled(void) {
-    id value = (__bridge_transfer id)CFPreferencesCopyAppValue(CFSTR("AMOverlayEnabled"),
-                                  CFSTR("com.shalamand3r.datelyrics"));
-    return value ? [value boolValue] : YES;
+static BOOL AMEnabled(NSString *key) {
+    return DateLyricsBoolPreference(key, nil);
+}
+
+static UIFont *AMFont(NSString *key, NSString *fallback, CGFloat fontSize) {
+    NSString *name = DateLyricsStringPreference(key, nil);
+    if (![name isKindOfClass:NSString.class] || !name.length) name = fallback;
+    if ([name isEqualToString:@"System-Bold"])
+        return [UIFont systemFontOfSize:fontSize weight:UIFontWeightBold];
+    UIFont *font = [UIFont fontWithName:name size:fontSize];
+    return font ?: [UIFont fontWithName:fallback size:fontSize] ?: [UIFont boldSystemFontOfSize:fontSize];
+}
+
+static NSTextAlignment AMAlign(NSString *key) {
+    NSInteger value = (NSInteger)AMSetting(key, 1, 0, 2);
+    return value == 0 ? NSTextAlignmentLeft : (value == 2 ? NSTextAlignmentRight : NSTextAlignmentCenter);
 }
 
 static void AMOverlayUpdate(void) {
-    if (!gAMOverlayLyrics) return;
-    BOOL shouldShow = AMOverlayEnabled() && gDateLyricsEnabled && DateLyricsRenderingActive();
+    if (!gAMOverlayLyrics && !gAMOverlayTrack) return;
+    BOOL active = gDateLyricsEnabled && DateLyricsRenderingActive();
+    BOOL preview = AMEnabled(@"AMOverlayPreview");
     NSDictionary *payload = gDateLyricsCurrentPayload;
-    NSString *lyric = [payload[@"text"] isKindOfClass:NSString.class] ? payload[@"text"] : nil;
-    if (!shouldShow || lyric.length == 0) {
-        gAMOverlayLyrics.hidden = YES;
-        gAMOverlayLyrics.attributedText = nil;
-        return;
-    }
 
-    UIColor *base = AMColor(@"AMOverlayBaseHex", @"#FF9C28");
-    UIColor *bright = AMColor(@"AMOverlayHighlightHex", @"#FFC075");
-    NSMutableAttributedString *formatted = [[NSMutableAttributedString alloc]
-            initWithString:lyric attributes:@{NSForegroundColorAttributeName: base}];
-    // DateLyrics already supplies word/line ranges in its synchronised payload.
-    NSNumber *loc = payload[@"focusLoc"];
-    NSNumber *len = payload[@"focusLen"];
-    if (![loc isKindOfClass:NSNumber.class] || ![len isKindOfClass:NSNumber.class]) {
-        loc = payload[@"loc"];
-        len = payload[@"len"];
-    }
-    if ([loc isKindOfClass:NSNumber.class] && [len isKindOfClass:NSNumber.class]) {
-        NSInteger start = loc.integerValue;
-        NSInteger count = len.integerValue;
-        if (start >= 0 && count > 0 && start <= (NSInteger)lyric.length &&
-            count <= (NSInteger)lyric.length - start) {
-            [formatted addAttribute:NSForegroundColorAttributeName value:bright
-                              range:NSMakeRange((NSUInteger)start, (NSUInteger)count)];
+    if (gAMOverlayLyrics) {
+        NSString *lyric = preview ? @"PREVIEW • AWESOME MIX LYRICS"
+            : ([payload[@"text"] isKindOfClass:NSString.class] ? payload[@"text"] : nil);
+        if (!active || !AMEnabled(@"AMOverlayEnabled") || lyric.length == 0) {
+            gAMOverlayLyrics.hidden = YES;
+            gAMOverlayLyrics.attributedText = nil;
+        } else {
+            UIColor *base = AMColor(@"AMOverlayBaseHex", @"#FF9C28");
+            UIColor *bright = AMColor(@"AMOverlayHighlightHex", @"#FFC075");
+            NSMutableAttributedString *formatted = [[NSMutableAttributedString alloc]
+                initWithString:lyric attributes:@{NSForegroundColorAttributeName: base}];
+            NSNumber *loc = preview ? @0 : payload[@"focusLoc"];
+            NSNumber *len = preview ? @7 : payload[@"focusLen"];
+            if (!preview && (![loc isKindOfClass:NSNumber.class] || ![len isKindOfClass:NSNumber.class])) {
+                loc = payload[@"loc"];
+                len = payload[@"len"];
+            }
+            if ([loc isKindOfClass:NSNumber.class] && [len isKindOfClass:NSNumber.class]) {
+                NSInteger start = loc.integerValue, count = len.integerValue;
+                if (start >= 0 && count > 0 && start <= (NSInteger)lyric.length &&
+                    count <= (NSInteger)lyric.length - start) {
+                    [formatted addAttribute:NSForegroundColorAttributeName value:bright
+                        range:NSMakeRange((NSUInteger)start, (NSUInteger)count)];
+                }
+            }
+            gAMOverlayLyrics.attributedText = formatted;
+            gAMOverlayLyrics.hidden = NO;
         }
     }
-    gAMOverlayLyrics.attributedText = formatted;
-    gAMOverlayLyrics.hidden = NO;
+
+    if (gAMOverlayTrack) {
+        NSString *title = preview ? @"Awesome Mix Vol. 1" : gAMNowPlayingTitle;
+        NSString *artist = preview ? @"Star-Lord" : gAMNowPlayingArtist;
+        BOOL showTitle = AMEnabled(@"AMTrackShowTitle") && title.length > 0;
+        BOOL showArtist = AMEnabled(@"AMTrackShowArtist") && artist.length > 0;
+        if (!active || !AMEnabled(@"AMTrackEnabled") || (!showTitle && !showArtist)) {
+            gAMOverlayTrack.hidden = YES;
+            gAMOverlayTrack.attributedText = nil;
+        } else {
+            NSMutableAttributedString *formatted = [[NSMutableAttributedString alloc] init];
+            if (showTitle) {
+                [formatted appendAttributedString:[[NSAttributedString alloc]
+                    initWithString:title attributes:@{NSForegroundColorAttributeName:
+                        AMColor(@"AMTrackTitleHex", @"#FFC075")}]];
+            }
+            if (showArtist) {
+                if (showTitle) [formatted appendAttributedString:[[NSAttributedString alloc] initWithString:@"\n"]];
+                [formatted appendAttributedString:[[NSAttributedString alloc]
+                    initWithString:artist attributes:@{NSForegroundColorAttributeName:
+                        AMColor(@"AMTrackArtistHex", @"#FF9C28")}]];
+            }
+            gAMOverlayTrack.attributedText = formatted;
+            gAMOverlayTrack.hidden = NO;
+        }
+    }
+}
+
+static UILabel *AMCreateLabel(UIView *host) {
+    UILabel *label = [UILabel new];
+    label.backgroundColor = UIColor.clearColor;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.numberOfLines = 2;
+    label.adjustsFontSizeToFitWidth = YES;
+    label.minimumScaleFactor = 0.55;
+    label.userInteractionEnabled = NO;
+    label.clipsToBounds = NO;
+    [host addSubview:label];
+    return label;
+}
+
+static void AMApplyLayout(UILabel *label, UIView *host, NSString *prefix,
+                          CGFloat dx, CGFloat dy, CGFloat dw, CGFloat dh,
+                          CGFloat defaultSize, NSString *fontFallback,
+                          CGFloat defaultGlow) {
+    if (!label) return;
+    CGFloat x = AMSetting([prefix stringByAppendingString:@"X"], dx, 0, 0.95);
+    CGFloat y = AMSetting([prefix stringByAppendingString:@"Y"], dy, 0, 0.95);
+    CGFloat w = AMSetting([prefix stringByAppendingString:@"W"], dw, 0.05, 1.0);
+    CGFloat h = AMSetting([prefix stringByAppendingString:@"H"], dh, 0.02, 0.25);
+    CGFloat fontSize = AMSetting([prefix stringByAppendingString:@"FontSize"], defaultSize, 8, 42);
+    CGFloat glow = AMSetting([prefix stringByAppendingString:@"Glow"], defaultGlow, 0, 25);
+    label.frame = CGRectMake(x * CGRectGetWidth(host.bounds), y * CGRectGetHeight(host.bounds),
+        MIN(w, 1.0 - x) * CGRectGetWidth(host.bounds),
+        MIN(h, 1.0 - y) * CGRectGetHeight(host.bounds));
+    label.font = AMFont([prefix stringByAppendingString:@"FontName"], fontFallback, fontSize);
+    label.textAlignment = AMAlign([prefix stringByAppendingString:@"Alignment"]);
+    label.layer.shadowColor = [AMColor([prefix stringByAppendingString:@"GlowHex"], @"#FF6A00") CGColor];
+    label.layer.shadowOpacity = AMSetting([prefix stringByAppendingString:@"GlowOpacity"], 0.85, 0, 1);
+    label.layer.shadowRadius = glow;
+    label.layer.shadowOffset = CGSizeZero;
 }
 
 static void AMOverlayAttach(UIView *host) {
     if (![host isKindOfClass:UIView.class]) return;
-    if (gAMOverlayHost != host || !gAMOverlayLyrics) {
+    if (gAMOverlayHost != host || !gAMOverlayLyrics || !gAMOverlayTrack) {
         [gAMOverlayLyrics removeFromSuperview];
-        UILabel *label = [UILabel new];
-        label.backgroundColor = UIColor.clearColor;
-        label.textAlignment = NSTextAlignmentCenter;
-        label.numberOfLines = 2;
-        label.adjustsFontSizeToFitWidth = YES;
-        label.minimumScaleFactor = 0.65;
-        label.userInteractionEnabled = NO;
-        label.clipsToBounds = NO;
-        [host addSubview:label];
-        gAMOverlayLyrics = label;
+        [gAMOverlayTrack removeFromSuperview];
+        gAMOverlayLyrics = AMCreateLabel(host);
+        gAMOverlayTrack = AMCreateLabel(host);
         gAMOverlayHost = host;
     }
-
-    // These fractional positions refer to the image, NOT the native date label.
-    // The initial rectangle matches the lower orange display on an XR wallpaper.
-    CGFloat x = AMSetting(@"AMOverlayX", 0.145, 0, 0.95);
-    CGFloat y = AMSetting(@"AMOverlayY", 0.638, 0, 0.95);
-    CGFloat w = AMSetting(@"AMOverlayW", 0.710, 0.05, 1.0);
-    CGFloat h = AMSetting(@"AMOverlayH", 0.069, 0.02, 0.25);
-    CGFloat fontSize = AMSetting(@"AMOverlayFontSize", 17.0, 8.0, 42.0);
-    CGFloat glow = AMSetting(@"AMOverlayGlow", 8.0, 0, 25.0);
-    CGFloat totalWidth = CGRectGetWidth(host.bounds);
-    CGFloat totalHeight = CGRectGetHeight(host.bounds);
-    gAMOverlayLyrics.frame = CGRectMake(x * totalWidth, y * totalHeight,
-                                       MIN(w, 1.0 - x) * totalWidth,
-                                       MIN(h, 1.0 - y) * totalHeight);
-    NSString *fontName = DateLyricsStringPreference(@"CustomFontName", nil);
-    UIFont *font = DateLyricsBoolPreference(@"UseCustomFont", nil)
-        ? [UIFont fontWithName:fontName size:fontSize] : nil;
-    gAMOverlayLyrics.font = font ?: [UIFont fontWithName:@"Menlo-Bold" size:fontSize] ?: [UIFont monospacedSystemFontOfSize:fontSize weight:UIFontWeightMedium];
-    gAMOverlayLyrics.layer.shadowColor = [AMColor(@"AMOverlayGlowHex", @"#FF6A00") CGColor];
-    gAMOverlayLyrics.layer.shadowOpacity = AMSetting(@"AMOverlayGlowOpacity", 0.85, 0.0, 1.0);
-    gAMOverlayLyrics.layer.shadowRadius = glow;
-    gAMOverlayLyrics.layer.shadowOffset = CGSizeZero;
+    AMApplyLayout(gAMOverlayLyrics, host, @"AMOverlay", 0.145, 0.638, 0.710, 0.069,
+                  17.0, @"Menlo-Bold", 8.0);
+    AMApplyLayout(gAMOverlayTrack, host, @"AMTrack", 0.145, 0.580, 0.710, 0.052,
+                  12.0, @"Menlo-Bold", 5.0);
+    [host bringSubviewToFront:gAMOverlayTrack];
     [host bringSubviewToFront:gAMOverlayLyrics];
     AMOverlayUpdate();
 }
@@ -7284,6 +7338,10 @@ static void DateLyricsReloadPrefs(CFNotificationCenterRef center, void *observer
             wasExternalAppsEnabled != gDateLyricsExternalAppsEnabled || wasRelaxedMatching != gDateLyricsRelaxedMatching)) {
             DateLyricsRequestNowPlayingInfo();
         }
+        // The normal date-label refresh does not recalculate custom overlay
+        // frames. Reapply layout when any Awesome Mix slider or colour changes.
+        if (DateLyricsIsSpringBoardHost() && gAMOverlayHost)
+            AMOverlayAttach(gAMOverlayHost);
         if (!gDateLyricsEnabled) {
             if (DateLyricsIsSpringBoardHost()) {
                 gDateLyricsCurrentPayload = nil;
@@ -7354,6 +7412,8 @@ static void DateLyricsClearCaches(CFNotificationCenterRef center, void *observer
 
 
 static void DateLyricsClearNowPlaying(void) {
+    gAMNowPlayingTitle = nil;
+    gAMNowPlayingArtist = nil;
     DateLyricsSelectExternalTrack(0, nil);
     DateLyricsInvalidateScoreLoad();
     gDateLyricsLocalAnchor = nil;
@@ -7414,6 +7474,19 @@ static void DateLyricsAdoptNowPlayingInfo(NSDictionary *info) {
         DateLyricsDebugLog(@"[CLOCK] event=ignore-stale track=%ld timestampBackwards=%.3f raw=%.3f rate=%.2f",
             (long)trackId, previousSampleWall - sampleWall, elapsedNum.doubleValue, rate);
         return;
+    }
+
+    // MediaRemote metadata is independent of lyrics lookup: show it as soon
+    // as the active track is known, including during a pending lyrics fetch.
+    NSString *amTitle = [info[@"kMRMediaRemoteNowPlayingInfoTitle"] isKindOfClass:NSString.class]
+        ? info[@"kMRMediaRemoteNowPlayingInfoTitle"] : nil;
+    NSString *amArtist = [info[@"kMRMediaRemoteNowPlayingInfoArtist"] isKindOfClass:NSString.class]
+        ? info[@"kMRMediaRemoteNowPlayingInfoArtist"] : nil;
+    if ((gAMNowPlayingTitle != amTitle && ![gAMNowPlayingTitle isEqualToString:amTitle]) ||
+        (gAMNowPlayingArtist != amArtist && ![gAMNowPlayingArtist isEqualToString:amArtist])) {
+        gAMNowPlayingTitle = [amTitle copy];
+        gAMNowPlayingArtist = [amArtist copy];
+        AMOverlayUpdate();
     }
 
     NSTimeInterval visualBefore = DateLyricsCurrentRenderElapsed();
