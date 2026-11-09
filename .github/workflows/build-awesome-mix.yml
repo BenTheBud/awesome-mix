@@ -29,6 +29,7 @@ jobs:
         run: |
           brew install make dpkg ldid
           git clone --depth 1 --recursive https://github.com/theos/theos.git "$RUNNER_TEMP/theos"
+          rm -rf "$RUNNER_TEMP/theos/sdks"
           git clone --depth 1 https://github.com/theos/sdks.git "$RUNNER_TEMP/theos/sdks"
 
       - name: Build rootless DateLyrics
