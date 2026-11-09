@@ -2004,17 +2004,22 @@ static NSRange DateLyricsRangeFromPayload(NSDictionary *payload, NSString *prefi
 
 
 
-// ---- Awesome Mix: configurable standalone Lock Screen overlays (v2) ----
-// Designer may hide the native date; these labels are attached to the cover sheet.
+// ---- Awesome Mix: configurable standalone Lock Screen overlays (v3) ----
+// This is separate from the original date label, which must not render a second
+// copy of the lyrics while the standalone display is enabled.
 static __weak UIView *gAMOverlayHost = nil;
 static UILabel *gAMOverlayLyrics = nil;
+static UILabel *gAMOverlayFill = nil;
 static UILabel *gAMOverlayTrack = nil;
+static CAGradientLayer *gAMFillMask = nil;
+static NSString *gAMFillIdentity = nil;
+static BOOL gAMFillWasPlaying = NO;
 static NSString *gAMNowPlayingTitle = nil;
 static NSString *gAMNowPlayingArtist = nil;
 
 static CGFloat AMSetting(NSString *key, CGFloat fallback, CGFloat minValue, CGFloat maxValue) {
     id value = (__bridge_transfer id)CFPreferencesCopyAppValue((__bridge CFStringRef)key,
-                                  CFSTR("com.shalamand3r.datelyrics"));
+                                   CFSTR("com.shalamand3r.datelyrics"));
     CGFloat n = [value respondsToSelector:@selector(doubleValue)] ? [value doubleValue] : fallback;
     if (!isfinite(n)) n = fallback;
     return fmin(maxValue, fmax(minValue, n));
@@ -2053,6 +2058,129 @@ static NSTextAlignment AMAlign(NSString *key) {
     return value == 0 ? NSTextAlignmentLeft : (value == 2 ? NSTextAlignmentRight : NSTextAlignmentCenter);
 }
 
+static void AMHideFill(void) {
+    gAMOverlayFill.hidden = YES;
+    [gAMFillMask removeAnimationForKey:@"AMKaraokeSweep"];
+    gAMFillIdentity = nil;
+    gAMFillWasPlaying = NO;
+}
+
+// TextKit determines the x-position of the *current word* after wrapping and
+// left/centre/right alignment. A continuous gradient then sweeps across its
+// glyphs; completed words stay bright in the underlying text label.
+static CGRect AMWordRect(UILabel *label, NSString *text, NSRange range) {
+    if (!label || !text || !range.length || range.location == NSNotFound ||
+        range.location > text.length || range.length > text.length - range.location ||
+        CGRectGetWidth(label.bounds) <= 1.0) return CGRectZero;
+    NSMutableParagraphStyle *paragraph = [NSMutableParagraphStyle new];
+    paragraph.alignment = label.textAlignment;
+    paragraph.lineBreakMode = label.lineBreakMode;
+    NSTextStorage *storage = [[NSTextStorage alloc] initWithString:text attributes:@{
+        NSFontAttributeName: label.font ?: [UIFont systemFontOfSize:17],
+        NSParagraphStyleAttributeName: paragraph
+    }];
+    NSLayoutManager *layout = [NSLayoutManager new];
+    NSTextContainer *container = [[NSTextContainer alloc] initWithSize:label.bounds.size];
+    container.lineFragmentPadding = 0.0;
+    container.maximumNumberOfLines = label.numberOfLines;
+    container.lineBreakMode = label.lineBreakMode;
+    [layout addTextContainer:container];
+    [storage addLayoutManager:layout];
+    NSRange glyphs = [layout glyphRangeForCharacterRange:range actualCharacterRange:NULL];
+    return [layout boundingRectForGlyphRange:glyphs inTextContainer:container];
+}
+
+static NSDictionary *AMActiveWord(NSDictionary *payload, NSString *text) {
+    id segments = payload[@"progressSegments"];
+    if ([segments isKindOfClass:NSArray.class]) {
+        for (id item in (NSArray *)segments) {
+            if (![item isKindOfClass:NSDictionary.class]) continue;
+            NSDictionary *segment = (NSDictionary *)item;
+            if ([segment[@"lane"] isEqual:@"background"]) continue;
+            NSNumber *loc = segment[@"loc"], *len = segment[@"len"];
+            if (![loc isKindOfClass:NSNumber.class] || ![len isKindOfClass:NSNumber.class]) continue;
+            NSInteger start = loc.integerValue, count = len.integerValue;
+            if (start >= 0 && count > 0 && start <= (NSInteger)text.length &&
+                count <= (NSInteger)text.length - start) return segment;
+        }
+    }
+    NSNumber *loc = payload[@"progressLoc"], *len = payload[@"progressLen"];
+    if ([payload[@"progressActive"] boolValue] && [loc isKindOfClass:NSNumber.class] &&
+        [len isKindOfClass:NSNumber.class] && loc.integerValue >= 0 && len.integerValue > 0 &&
+        loc.integerValue <= (NSInteger)text.length &&
+        len.integerValue <= (NSInteger)text.length - loc.integerValue) {
+        return @{@"loc": loc, @"len": len,
+                 @"begin": payload[@"progressBegin"] ?: @0,
+                 @"end": payload[@"progressEnd"] ?: @0};
+    }
+    return nil;
+}
+
+static void AMUpdateKaraokeFill(NSDictionary *payload, NSString *text, UIColor *litColor) {
+    if (!gAMOverlayFill || !gAMOverlayLyrics || !gAMFillMask) return;
+    NSDictionary *segment = AMActiveWord(payload, text);
+    if (!segment) { AMHideFill(); return; }
+    NSInteger start = [segment[@"loc"] integerValue];
+    NSInteger count = [segment[@"len"] integerValue];
+    NSRange wordRange = NSMakeRange((NSUInteger)start, (NSUInteger)count);
+    CGRect wordRect = AMWordRect(gAMOverlayLyrics, text, wordRange);
+    CGFloat width = CGRectGetWidth(gAMOverlayFill.bounds);
+    if (CGRectIsEmpty(wordRect) || width <= 1.0) { AMHideFill(); return; }
+
+    NSMutableAttributedString *lit = [[NSMutableAttributedString alloc]
+        initWithString:text attributes:@{NSForegroundColorAttributeName: UIColor.clearColor,
+                                         NSFontAttributeName: gAMOverlayFill.font}];
+    [lit addAttribute:NSForegroundColorAttributeName value:litColor range:wordRange];
+    if (![gAMOverlayFill.attributedText isEqualToAttributedString:lit])
+        gAMOverlayFill.attributedText = lit;
+    gAMOverlayFill.hidden = NO;
+
+    NSTimeInterval begin = [segment[@"begin"] doubleValue];
+    NSTimeInterval end = [segment[@"end"] doubleValue];
+    NSTimeInterval elapsed = DateLyricsCurrentRenderElapsed();
+    double rate = [gDateLyricsLocalAnchor[@"rate"] doubleValue];
+    if (!isfinite(rate)) rate = 0.0;
+    BOOL playing = rate > 0.001;
+    CGFloat progress = (end > begin) ? (CGFloat)fmin(1.0, fmax(0.0, (elapsed - begin) / (end - begin))) : 1.0;
+    CGFloat left = fmin(1.0, fmax(0.0, CGRectGetMinX(wordRect) / width));
+    CGFloat right = fmin(1.0, fmax(left, CGRectGetMaxX(wordRect) / width));
+    CGFloat feather = fmin(6.0 / width, fmax(1.0 / width, (right - left) * 0.3));
+    CGFloat edge = fmin(1.0, left + (right - left) * progress);
+    NSArray *from = @[@0.0, @(fmax(0.0, edge - feather)), @(edge), @1.0];
+    CGFloat finalEdge = right;
+    NSArray *to = @[@0.0, @(fmax(0.0, finalEdge - feather)), @(finalEdge), @1.0];
+
+    NSString *identity = [NSString stringWithFormat:@"%@|%@|%@|%.4f|%.4f|%.2f|%.2f",
+                           payload[@"lineId"] ?: @"-", segment[@"loc"], segment[@"len"],
+                           begin, end, width, gAMOverlayFill.font.pointSize];
+    BOOL sameWord = [identity isEqualToString:gAMFillIdentity];
+    BOOL seek = [gDateLyricsLocalAnchor[@"seek"] boolValue];
+    BOOL hasAnimation = [gAMFillMask animationForKey:@"AMKaraokeSweep"] != nil;
+    if (sameWord && playing && gAMFillWasPlaying && !seek && hasAnimation) return;
+    if (sameWord && !playing && !gAMFillWasPlaying && !hasAnimation) return;
+
+    [gAMFillMask removeAnimationForKey:@"AMKaraokeSweep"];
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    gAMFillMask.locations = from;
+    [CATransaction commit];
+    if (playing && end > elapsed && right > left) {
+        CFTimeInterval remaining = (end - elapsed) / rate;
+        if (remaining > 0.01 && isfinite(remaining)) {
+            CABasicAnimation *sweep = [CABasicAnimation animationWithKeyPath:@"locations"];
+            sweep.fromValue = from;
+            sweep.toValue = to;
+            sweep.duration = MIN(remaining, 30.0);
+            sweep.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionLinear];
+            sweep.fillMode = kCAFillModeForwards;
+            sweep.removedOnCompletion = NO;
+            [gAMFillMask addAnimation:sweep forKey:@"AMKaraokeSweep"];
+        }
+    }
+    gAMFillIdentity = [identity copy];
+    gAMFillWasPlaying = playing;
+}
+
 static void AMOverlayUpdate(void) {
     if (!gAMOverlayLyrics && !gAMOverlayTrack) return;
     BOOL active = gDateLyricsEnabled && DateLyricsRenderingActive();
@@ -2065,27 +2193,57 @@ static void AMOverlayUpdate(void) {
         if (!active || !AMEnabled(@"AMOverlayEnabled") || lyric.length == 0) {
             gAMOverlayLyrics.hidden = YES;
             gAMOverlayLyrics.attributedText = nil;
+            AMHideFill();
         } else {
             UIColor *base = AMColor(@"AMOverlayBaseHex", @"#FF9C28");
             UIColor *bright = AMColor(@"AMOverlayHighlightHex", @"#FFC075");
             NSMutableAttributedString *formatted = [[NSMutableAttributedString alloc]
-                initWithString:lyric attributes:@{NSForegroundColorAttributeName: base}];
-            NSNumber *loc = preview ? @0 : payload[@"focusLoc"];
-            NSNumber *len = preview ? @7 : payload[@"focusLen"];
-            if (!preview && (![loc isKindOfClass:NSNumber.class] || ![len isKindOfClass:NSNumber.class])) {
-                loc = payload[@"loc"];
-                len = payload[@"len"];
-            }
-            if ([loc isKindOfClass:NSNumber.class] && [len isKindOfClass:NSNumber.class]) {
-                NSInteger start = loc.integerValue, count = len.integerValue;
-                if (start >= 0 && count > 0 && start <= (NSInteger)lyric.length &&
-                    count <= (NSInteger)lyric.length - start) {
+                initWithString:lyric attributes:@{NSForegroundColorAttributeName: base,
+                                                  NSFontAttributeName: gAMOverlayLyrics.font}];
+            BOOL karaoke = !preview && gDateLyricsWordHighlighting &&
+                gDateLyricsProgressiveFill && AMEnabled(@"AMOverlaySmoothFill") &&
+                [payload[@"wordTimed"] boolValue];
+            if (karaoke) {
+                NSArray *completed = payload[@"completedRanges"];
+                if ([completed isKindOfClass:NSArray.class]) {
+                    for (id entry in completed) {
+                        if (![entry isKindOfClass:NSDictionary.class] ||
+                            [entry[@"lane"] isEqual:@"background"]) continue;
+                        NSInteger start = [entry[@"loc"] integerValue];
+                        NSInteger count = [entry[@"len"] integerValue];
+                        if (start >= 0 && count > 0 && start <= (NSInteger)lyric.length &&
+                            count <= (NSInteger)lyric.length - start) {
+                            [formatted addAttribute:NSForegroundColorAttributeName value:bright
+                                              range:NSMakeRange((NSUInteger)start, (NSUInteger)count)];
+                        }
+                    }
+                }
+                if ([payload[@"finished"] boolValue]) {
                     [formatted addAttribute:NSForegroundColorAttributeName value:bright
-                        range:NSMakeRange((NSUInteger)start, (NSUInteger)count)];
+                                      range:NSMakeRange(0, lyric.length)];
+                }
+            } else {
+                NSNumber *loc = preview ? @0 : payload[@"focusLoc"];
+                NSNumber *len = preview ? @7 : payload[@"focusLen"];
+                if (!preview && (![loc isKindOfClass:NSNumber.class] || ![len isKindOfClass:NSNumber.class])) {
+                    loc = payload[@"loc"];
+                    len = payload[@"len"];
+                }
+                if ([loc isKindOfClass:NSNumber.class] && [len isKindOfClass:NSNumber.class]) {
+                    NSInteger start = loc.integerValue, count = len.integerValue;
+                    if (start >= 0 && count > 0 && start <= (NSInteger)lyric.length &&
+                        count <= (NSInteger)lyric.length - start) {
+                        [formatted addAttribute:NSForegroundColorAttributeName value:bright
+                                          range:NSMakeRange((NSUInteger)start, (NSUInteger)count)];
+                    }
                 }
             }
-            gAMOverlayLyrics.attributedText = formatted;
+            if (![gAMOverlayLyrics.attributedText isEqualToAttributedString:formatted])
+                gAMOverlayLyrics.attributedText = formatted;
             gAMOverlayLyrics.hidden = NO;
+            if (karaoke && ![payload[@"finished"] boolValue])
+                AMUpdateKaraokeFill(payload, lyric, bright);
+            else AMHideFill();
         }
     }
 
@@ -2110,7 +2268,8 @@ static void AMOverlayUpdate(void) {
                     initWithString:artist attributes:@{NSForegroundColorAttributeName:
                         AMColor(@"AMTrackArtistHex", @"#FF9C28")}]];
             }
-            gAMOverlayTrack.attributedText = formatted;
+            if (![gAMOverlayTrack.attributedText isEqualToAttributedString:formatted])
+                gAMOverlayTrack.attributedText = formatted;
             gAMOverlayTrack.hidden = NO;
         }
     }
@@ -2121,8 +2280,10 @@ static UILabel *AMCreateLabel(UIView *host) {
     label.backgroundColor = UIColor.clearColor;
     label.textAlignment = NSTextAlignmentCenter;
     label.numberOfLines = 2;
-    label.adjustsFontSizeToFitWidth = YES;
-    label.minimumScaleFactor = 0.55;
+    // Disable dynamic glyph scaling so the karaoke gradient matches TextKit's
+    // measured word positions. The font-size slider controls text fitting.
+    label.adjustsFontSizeToFitWidth = NO;
+    label.lineBreakMode = NSLineBreakByTruncatingTail;
     label.userInteractionEnabled = NO;
     label.clipsToBounds = NO;
     [host addSubview:label];
@@ -2153,19 +2314,43 @@ static void AMApplyLayout(UILabel *label, UIView *host, NSString *prefix,
 
 static void AMOverlayAttach(UIView *host) {
     if (![host isKindOfClass:UIView.class]) return;
-    if (gAMOverlayHost != host || !gAMOverlayLyrics || !gAMOverlayTrack) {
+    if (gAMOverlayHost != host || !gAMOverlayLyrics || !gAMOverlayFill || !gAMOverlayTrack) {
         [gAMOverlayLyrics removeFromSuperview];
+        [gAMOverlayFill removeFromSuperview];
         [gAMOverlayTrack removeFromSuperview];
         gAMOverlayLyrics = AMCreateLabel(host);
+        gAMOverlayFill = AMCreateLabel(host);
         gAMOverlayTrack = AMCreateLabel(host);
+        gAMFillMask = [CAGradientLayer layer];
+        gAMFillMask.colors = @[(id)UIColor.whiteColor.CGColor, (id)UIColor.whiteColor.CGColor,
+                               (id)UIColor.clearColor.CGColor, (id)UIColor.clearColor.CGColor];
+        gAMFillMask.startPoint = CGPointMake(0, 0.5);
+        gAMFillMask.endPoint = CGPointMake(1, 0.5);
+        gAMFillMask.locations = @[@0.0, @0.0, @0.0, @1.0];
+        gAMFillMask.actions = @{@"locations": [NSNull null], @"bounds": [NSNull null],
+                                @"position": [NSNull null]};
+        gAMOverlayFill.layer.mask = gAMFillMask;
+        AMHideFill();
         gAMOverlayHost = host;
     }
+    CGRect oldFrame = gAMOverlayFill.frame;
+    UIFont *oldFont = gAMOverlayFill.font;
+    NSTextAlignment oldAlignment = gAMOverlayFill.textAlignment;
     AMApplyLayout(gAMOverlayLyrics, host, @"AMOverlay", 0.145, 0.638, 0.710, 0.069,
+                  17.0, @"Menlo-Bold", 8.0);
+    // Match glyph geometry and glow for the second layer (the active word).
+    AMApplyLayout(gAMOverlayFill, host, @"AMOverlay", 0.145, 0.638, 0.710, 0.069,
                   17.0, @"Menlo-Bold", 8.0);
     AMApplyLayout(gAMOverlayTrack, host, @"AMTrack", 0.145, 0.580, 0.710, 0.052,
                   12.0, @"Menlo-Bold", 5.0);
+    if (!CGRectEqualToRect(oldFrame, gAMOverlayFill.frame) ||
+        ![oldFont isEqual:gAMOverlayFill.font] || oldAlignment != gAMOverlayFill.textAlignment) {
+        AMHideFill();
+    }
+    gAMFillMask.frame = gAMOverlayFill.bounds;
     [host bringSubviewToFront:gAMOverlayTrack];
     [host bringSubviewToFront:gAMOverlayLyrics];
+    [host bringSubviewToFront:gAMOverlayFill];
     AMOverlayUpdate();
 }
 // ---- End Awesome Mix overlay ----
@@ -6569,6 +6754,11 @@ static void DateLyricsSetCoverSheetVisible(BOOL visible, NSString *reason) {
 
     _UIAnimatingLabel *label = DateLyricsFindAnimatingLabel(self);
     if (!label) return;
+    if (AMEnabled(@"AMOverlayEnabled")) {
+        [label _amlApplyCurrentLyric];
+        label.hidden = YES;
+        return;
+    }
 
     DateLyricsResetHybridVisibilityIfNeeded(self);
 
@@ -6730,6 +6920,18 @@ static void DateLyricsSetCoverSheetVisible(BOOL visible, NSString *reason) {
 
 %new
 - (BOOL)_amlApplyCurrentLyric {
+    // Awesome Mix renders independently of the iOS date label. Prevent the
+    // original DateLyrics renderer from drawing a duplicate beneath the deck.
+    if (AMEnabled(@"AMOverlayEnabled")) {
+        if (DateLyricsLabelHasResidualLyricState(self)) {
+            DateLyricsStopMarquee(self);
+            DateLyricsRemoveProgressOverlay(self);
+            DateLyricsRestoreSystemDateLabel(self);
+        }
+        self.hidden = YES;
+        return YES;
+    }
+    self.hidden = NO;
     if (!DateLyricsRenderingActive()) {
         return YES;
     }

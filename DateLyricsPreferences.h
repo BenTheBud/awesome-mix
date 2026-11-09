@@ -20,7 +20,7 @@ static inline NSDictionary<NSString *, id> *DateLyricsPreferenceDefaults(void) {
             @"AMOverlayGlowOpacity": @0.85,
             @"AMOverlayBaseHex": @"#FF9C28", @"AMOverlayHighlightHex": @"#FFC075", @"AMOverlayGlowHex": @"#FF6A00",
             @"AMOverlayFontName": @"Menlo-Bold", @"AMOverlayAlignment": @1,
-            @"AMOverlayPreview": @NO,
+            @"AMOverlayPreview": @NO, @"AMOverlaySmoothFill": @YES,
             @"AMTrackEnabled": @YES, @"AMTrackShowTitle": @YES, @"AMTrackShowArtist": @YES,
             @"AMTrackX": @0.145, @"AMTrackY": @0.580,
             @"AMTrackW": @0.710, @"AMTrackH": @0.052,
