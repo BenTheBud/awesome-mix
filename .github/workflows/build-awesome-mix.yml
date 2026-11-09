@@ -1,0 +1,48 @@
+name: Build Awesome Mix DateLyrics
+
+on:
+  push:
+    branches:
+      - lyrics-overlay
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: awesome-mix-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build iOS 16 rootless DEB
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install Theos requirements
+        run: |
+          brew install make dpkg ldid
+          git clone --depth 1 --recursive https://github.com/theos/theos.git "$RUNNER_TEMP/theos"
+          git clone --depth 1 https://github.com/theos/sdks.git "$RUNNER_TEMP/theos/sdks"
+
+      - name: Build rootless DateLyrics
+        env:
+          THEOS: ${{ runner.temp }}/theos
+        run: |
+          export PATH="$(brew --prefix make)/libexec/gnubin:$PATH"
+          make --version | head -2
+          make clean package FINALPACKAGE=1
+          ls -lah packages/
+
+      - name: Upload installable DEB
+        uses: actions/upload-artifact@v5
+        with:
+          name: awesome-mix-datelyrics-rootless
+          path: packages/*.deb
+          if-no-files-found: error
