@@ -13,6 +13,12 @@ static inline NSDictionary<NSString *, id> *DateLyricsPreferenceDefaults(void) {
     dispatch_once(&once, ^{
         defaults = @{
             @"Enabled": @YES, @"AODEnabled": @YES, @"AODRefreshRetry": @YES,
+            @"AMOverlayEnabled": @YES,
+            @"AMOverlayX": @0.145, @"AMOverlayY": @0.638,
+            @"AMOverlayW": @0.710, @"AMOverlayH": @0.069,
+            @"AMOverlayFontSize": @17.0, @"AMOverlayGlow": @8.0,
+            @"AMOverlayGlowOpacity": @0.85,
+            @"AMOverlayBaseHex": @"#FF9C28", @"AMOverlayHighlightHex": @"#FFC075", @"AMOverlayGlowHex": @"#FF6A00",
             @"UseCustomFont": @NO, @"CustomFontName": @"AvenirNext-Regular",
             @"ForceLowercase": @NO, @"WordHighlighting": @YES, @"ProgressiveFill": @YES,
             @"TransitionsEnabled": @YES, @"TransitionStyle": @1, @"TransitionDuration": @0.33,

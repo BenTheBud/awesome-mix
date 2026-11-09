@@ -1,6 +1,6 @@
 [submodule "CoreLyrics"]
 	path = CoreLyrics
-	url = ../CoreLyrics
+	url = https://github.com/shalamand3r/CoreLyrics.git
 [submodule "LyricBridge"]
 	path = LyricBridge
-	url = ../LyricBridge
+	url = https://github.com/shalamand3r/LyricBridge.git

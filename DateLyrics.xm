@@ -2003,6 +2003,119 @@ static NSRange DateLyricsRangeFromPayload(NSDictionary *payload, NSString *prefi
 
 
 
+
+// ---- Awesome Mix: independent Lock Screen lyrics display (experimental) ----
+// The stock date view may be hidden by Designer. This label intentionally lives
+// under CSCoverSheetViewController instead of CSProminentSubtitleDateView.
+static __weak UIView *gAMOverlayHost = nil;
+static UILabel *gAMOverlayLyrics = nil;
+
+static CGFloat AMSetting(NSString *key, CGFloat fallback, CGFloat minValue, CGFloat maxValue) {
+    id value = (__bridge_transfer id)CFPreferencesCopyAppValue((__bridge CFStringRef)key,
+                                 CFSTR("com.shalamand3r.datelyrics"));
+    CGFloat n = [value respondsToSelector:@selector(doubleValue)] ? [value doubleValue] : fallback;
+    return fmin(maxValue, fmax(minValue, n));
+}
+
+static UIColor *AMColor(NSString *key, NSString *fallback) {
+    NSString *raw = DateLyricsStringPreference(key, nil);
+    if (![raw isKindOfClass:NSString.class] || raw.length == 0) raw = fallback;
+    NSString *hex = [[raw stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] uppercaseString];
+    if ([hex hasPrefix:@"#"]) hex = [hex substringFromIndex:1];
+    if (hex.length != 6) hex = [fallback substringFromIndex:1];
+    unsigned int rgb = 0;
+    if (![[NSScanner scannerWithString:hex] scanHexInt:&rgb]) {
+        [[NSScanner scannerWithString:[fallback substringFromIndex:1]] scanHexInt:&rgb];
+    }
+    return [UIColor colorWithRed:((rgb >> 16) & 0xff) / 255.0
+                           green:((rgb >> 8) & 0xff) / 255.0
+                            blue:(rgb & 0xff) / 255.0 alpha:1.0];
+}
+
+static BOOL AMOverlayEnabled(void) {
+    id value = (__bridge_transfer id)CFPreferencesCopyAppValue(CFSTR("AMOverlayEnabled"),
+                                  CFSTR("com.shalamand3r.datelyrics"));
+    return value ? [value boolValue] : YES;
+}
+
+static void AMOverlayUpdate(void) {
+    if (!gAMOverlayLyrics) return;
+    BOOL shouldShow = AMOverlayEnabled() && gDateLyricsEnabled && DateLyricsRenderingActive();
+    NSDictionary *payload = gDateLyricsCurrentPayload;
+    NSString *lyric = [payload[@"text"] isKindOfClass:NSString.class] ? payload[@"text"] : nil;
+    if (!shouldShow || lyric.length == 0) {
+        gAMOverlayLyrics.hidden = YES;
+        gAMOverlayLyrics.attributedText = nil;
+        return;
+    }
+
+    UIColor *base = AMColor(@"AMOverlayBaseHex", @"#FF9C28");
+    UIColor *bright = AMColor(@"AMOverlayHighlightHex", @"#FFC075");
+    NSMutableAttributedString *formatted = [[NSMutableAttributedString alloc]
+            initWithString:lyric attributes:@{NSForegroundColorAttributeName: base}];
+    // DateLyrics already supplies word/line ranges in its synchronised payload.
+    NSNumber *loc = payload[@"focusLoc"];
+    NSNumber *len = payload[@"focusLen"];
+    if (![loc isKindOfClass:NSNumber.class] || ![len isKindOfClass:NSNumber.class]) {
+        loc = payload[@"loc"];
+        len = payload[@"len"];
+    }
+    if ([loc isKindOfClass:NSNumber.class] && [len isKindOfClass:NSNumber.class]) {
+        NSInteger start = loc.integerValue;
+        NSInteger count = len.integerValue;
+        if (start >= 0 && count > 0 && start <= (NSInteger)lyric.length &&
+            count <= (NSInteger)lyric.length - start) {
+            [formatted addAttribute:NSForegroundColorAttributeName value:bright
+                              range:NSMakeRange((NSUInteger)start, (NSUInteger)count)];
+        }
+    }
+    gAMOverlayLyrics.attributedText = formatted;
+    gAMOverlayLyrics.hidden = NO;
+}
+
+static void AMOverlayAttach(UIView *host) {
+    if (![host isKindOfClass:UIView.class]) return;
+    if (gAMOverlayHost != host || !gAMOverlayLyrics) {
+        [gAMOverlayLyrics removeFromSuperview];
+        UILabel *label = [UILabel new];
+        label.backgroundColor = UIColor.clearColor;
+        label.textAlignment = NSTextAlignmentCenter;
+        label.numberOfLines = 2;
+        label.adjustsFontSizeToFitWidth = YES;
+        label.minimumScaleFactor = 0.65;
+        label.userInteractionEnabled = NO;
+        label.clipsToBounds = NO;
+        [host addSubview:label];
+        gAMOverlayLyrics = label;
+        gAMOverlayHost = host;
+    }
+
+    // These fractional positions refer to the image, NOT the native date label.
+    // The initial rectangle matches the lower orange display on an XR wallpaper.
+    CGFloat x = AMSetting(@"AMOverlayX", 0.145, 0, 0.95);
+    CGFloat y = AMSetting(@"AMOverlayY", 0.638, 0, 0.95);
+    CGFloat w = AMSetting(@"AMOverlayW", 0.710, 0.05, 1.0);
+    CGFloat h = AMSetting(@"AMOverlayH", 0.069, 0.02, 0.25);
+    CGFloat fontSize = AMSetting(@"AMOverlayFontSize", 17.0, 8.0, 42.0);
+    CGFloat glow = AMSetting(@"AMOverlayGlow", 8.0, 0, 25.0);
+    CGFloat totalWidth = CGRectGetWidth(host.bounds);
+    CGFloat totalHeight = CGRectGetHeight(host.bounds);
+    gAMOverlayLyrics.frame = CGRectMake(x * totalWidth, y * totalHeight,
+                                       MIN(w, 1.0 - x) * totalWidth,
+                                       MIN(h, 1.0 - y) * totalHeight);
+    NSString *fontName = DateLyricsStringPreference(@"CustomFontName", nil);
+    UIFont *font = DateLyricsBoolPreference(@"UseCustomFont", nil)
+        ? [UIFont fontWithName:fontName size:fontSize] : nil;
+    gAMOverlayLyrics.font = font ?: [UIFont fontWithName:@"Menlo-Bold" size:fontSize] ?: [UIFont monospacedSystemFontOfSize:fontSize weight:UIFontWeightMedium];
+    gAMOverlayLyrics.layer.shadowColor = [AMColor(@"AMOverlayGlowHex", @"#FF6A00") CGColor];
+    gAMOverlayLyrics.layer.shadowOpacity = AMSetting(@"AMOverlayGlowOpacity", 0.85, 0.0, 1.0);
+    gAMOverlayLyrics.layer.shadowRadius = glow;
+    gAMOverlayLyrics.layer.shadowOffset = CGSizeZero;
+    [host bringSubviewToFront:gAMOverlayLyrics];
+    AMOverlayUpdate();
+}
+// ---- End Awesome Mix overlay ----
+
 static void DateLyricsApplyCurrentLineToAllCoverSheets(void) {
     if (!DateLyricsRenderingActive()) return;
     if (gDateLyricsDateViews) {
@@ -2018,6 +2131,7 @@ static void DateLyricsApplyCurrentLineToAllCoverSheets(void) {
             DateLyricsUpdateWidgetDateView(widgetSlot);
         }
     }
+    AMOverlayUpdate();
 }
 
 
@@ -6348,10 +6462,15 @@ static void DateLyricsSetCoverSheetVisible(BOOL visible, NSString *reason) {
 }
 
 %hook CSCoverSheetViewController
+- (void)viewDidLayoutSubviews {
+    %orig;
+    AMOverlayAttach(((UIViewController *)self).view);
+}
 - (void)viewWillAppear:(BOOL)animated {
     // resume before uikit draws even the first sliver of an interactive reveal.
     DateLyricsSetCoverSheetVisible(YES, @"will appear");
     %orig;
+    AMOverlayAttach(((UIViewController *)self).view);
 }
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
@@ -6363,6 +6482,7 @@ static void DateLyricsSetCoverSheetVisible(BOOL visible, NSString *reason) {
     // do not stop at willdisappear: its pixels are still visible while sliding
     // away, and an interactive gesture can be cancelled.
     DateLyricsSetCoverSheetVisible(NO, @"did disappear");
+    AMOverlayUpdate();
 }
 %end
 
